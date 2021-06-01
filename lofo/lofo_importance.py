@@ -24,9 +24,13 @@ class LOFOImportance:
         Same as cv in sklearn API
     n_jobs: int, optional
         Number of jobs for parallel computation
+    groups : array-like of shape (n_samples,), default=None
+        Group labels for the samples used while splitting the dataset into
+        train/test set. Only used in conjunction with a "Group" :term:`cv`
+        instance (e.g., :class:`~sklearn.model_selection.GroupKFold`).
     """
 
-    def __init__(self, dataset, scoring, model=None, fit_params=None, cv=4, n_jobs=None):
+    def __init__(self, dataset, scoring, model=None, fit_params=None, cv=4, n_jobs=None, groups=None):
 
         self.fit_params = fit_params if fit_params else dict()
         if model is None:
@@ -39,10 +43,12 @@ class LOFOImportance:
         self.scoring = scoring
         self.cv = cv
         self.n_jobs = n_jobs
+        self.groups = groups
         if self.n_jobs is not None and self.n_jobs > 1:
             warning_str = ("Warning: If your model is multithreaded, please initialise the number"
                            "of jobs of LOFO to be equal to 1, otherwise you may experience performance issues.")
             warnings.warn(warning_str)
+
 
     def _get_cv_score(self, feature_to_remove):
         X, fit_params = self.dataset.getX(feature_to_remove=feature_to_remove, fit_params=self.fit_params)
@@ -50,7 +56,7 @@ class LOFOImportance:
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            cv_results = cross_validate(self.model, X, y, cv=self.cv, scoring=self.scoring, fit_params=fit_params)
+            cv_results = cross_validate(self.model, X, y, cv=self.cv, scoring=self.scoring, fit_params=fit_params, groups=self.groups)
         return cv_results['test_score']
 
     def _get_cv_score_parallel(self, feature, result_queue):
